@@ -9,7 +9,7 @@
 # found at https://github.com/riscv/riscv-tools.
 
 # Pull base image (use Wily for now).
-FROM ubuntu:15.10
+FROM ubuntu:16.04
 
 # Set the maintainer
 MAINTAINER Stephen Bates (sbates130272) <sbates@raithlin.com>
@@ -56,7 +56,7 @@ RUN git clone https://github.com/riscv/riscv-tools.git && \
 WORKDIR $RISCV
 RUN mkdir linux-4.1.y && cd linux-4.1.y && git init && \
   git remote add origin https://github.com/riscv/riscv-linux.git && \
-  git fetch && git checkout -b linux origin/linux-4.1.y-riscv
+  git fetch && git checkout -ft origin/master
 
 #RUN curl -L https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.41.tar.xz | \
 #  tar -xJ && cd linux-3.14.41 && git init && \
@@ -72,6 +72,8 @@ RUN make ARCH=riscv headers_check && \
 
 # Now build the toolchain for RISCV. Set -j 1 to avoid issues on VMs.
 WORKDIR $RISCV/riscv-tools
+RUN apt-get install -y pkg-config apt-utils
+RUN apt-get install -y automake curl device-tree-compiler libmpc-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev
 RUN sed -i 's/JOBS=16/JOBS=$NUMJOBS/' build.common && \
   ./build.sh
 
@@ -103,9 +105,10 @@ RUN ./configure --prefix=$RISCV && make linux && rm -rf \
 # .config from my GitHub site since we have enabled more than the
 # default (squashfs for example).
 WORKDIR $RISCV/linux-4.1.y
-RUN curl -L https://raw.githubusercontent.com/sbates130272/docker-riscv/\
+RUN curl -L https://raw.githubusercontent.com/illustris/docker-riscv/\
 master/.config-linux-4.1.y > .config && make ARCH=riscv -j $NUMJOBS \
   vmlinux
+#RUN make ARCH=riscv defconfig -j $NUMJOBS vmlinux
 
 # Now create a mnt subfolder that we will squashfs into our root
 # filesystem for the linux environment.
